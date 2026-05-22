@@ -3,12 +3,16 @@ import Template1 from "../Templates/Template1";
 import Template2 from "../Templates/Template2";
 import Template3 from "../Templates/Template3";
 import Template4 from "../Templates/Template4";
+import Template5 from "../Templates/Template5";
+import Template6 from "../Templates/Template6";
 import {
   cloneConfig,
   DEFAULT_TEMPLATE1_CONFIG,
   DEFAULT_TEMPLATE2_CONFIG,
   DEFAULT_TEMPLATE3_CONFIG,
   DEFAULT_TEMPLATE4_CONFIG,
+  DEFAULT_TEMPLATE5_CONFIG,
+  DEFAULT_TEMPLATE6_CONFIG,
   type TemplateConfig,
   type TemplateType,
 } from "../pages/Templateconfig";
@@ -36,6 +40,8 @@ const TEMPLATE_IDS: TemplateType[] = Array.from(
 function resolveComponent(id: TemplateType): TemplateComponent {
   if (id === "template3") return Template3;
   if (id === "template4") return Template4;
+  if (id === "template5") return Template5;
+  if (id === "template6") return Template6;
   const num = parseInt(id.replace(/\D/g, ""), 10);
   return num % 2 === 0 ? Template2 : Template1;
 }
@@ -51,6 +57,8 @@ const TEMPLATE_COMPONENTS: Record<TemplateType, TemplateComponent> = TEMPLATE_ID
 function resolveDefaultConfig(id: TemplateType): TemplateConfig {
   if (id === "template3") return { ...DEFAULT_TEMPLATE3_CONFIG, id: `${id}-default`, templateType: id };
   if (id === "template4") return { ...DEFAULT_TEMPLATE4_CONFIG, id: `${id}-default`, templateType: id };
+  if (id === "template5") return { ...DEFAULT_TEMPLATE5_CONFIG, id: `${id}-default`, templateType: id };
+  if (id === "template6") return { ...DEFAULT_TEMPLATE6_CONFIG, id: `${id}-default`, templateType: id };
   const num = parseInt(id.replace(/\D/g, ""), 10);
   const base = num % 2 === 0 ? DEFAULT_TEMPLATE2_CONFIG : DEFAULT_TEMPLATE1_CONFIG;
   return { ...base, id: `${id}-default`, templateType: id };
@@ -124,9 +132,21 @@ export function inferCatalogThemeId(theme: ThemeRecord, themes: ThemeRecord[] = 
   ) return "template3";
   if (
     searchableName.includes("burger") ||
-    searchableName.includes("fauget") ||
+    searchableName.includes("fauget burger") ||
     searchableName.includes("template 4")
   ) return "template4";
+  if (
+    searchableName.includes("fauget hotel") ||
+    searchableName.includes("golden hotel") ||
+    searchableName.includes("hotel golden") ||
+    searchableName.includes("template 5")
+  ) return "template5";
+  if (
+    searchableName.includes("restaurant food menu") ||
+    searchableName.includes("food menu") ||
+    searchableName.includes("burgundy") ||
+    searchableName.includes("template 6")
+  ) return "template6";
   if (searchableName.includes("luxury")) return "template3";
 
   // 4. Position-based fallback (index in the list)
