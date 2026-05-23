@@ -9,39 +9,39 @@ interface Template5Props {
 
 /* ─── static demo data ─────────────────────────────────────── */
 const noodles = [
-  { name: "Egg Noodles",     price: "$5.00" },
-  { name: "Rice Noodles",    price: "$7.00" },
-  { name: "Carrot Noodles",  price: "$6.50" },
-  { name: "Garlic Noodles",  price: "$4.00" },
-  { name: "Butter Noodles",  price: "$5.50" },
-  { name: "Chicken Noodles", price: "$6.50" },
+  { name: "Egg Noodles",     price: "₹ 100" },
+  { name: "Rice Noodles",    price: "₹ 150" },
+  { name: "Carrot Noodles",  price: "₹ 200" },
+  { name: "Garlic Noodles",  price: "₹ 110" },
+  { name: "Butter Noodles",  price: "₹ 110" },
+  { name: "Chicken Noodles", price: "₹ 100" },
 ];
 
 const burgers = [
-  { name: "Butter Burger", price: "$6.00" },
-  { name: "Beef Burger",   price: "$7.00" },
-  { name: "Fruit Burger",  price: "$6.50" },
-  { name: "Lamb Burger",   price: "$8.00" },
-  { name: "Cheese Burger", price: "$5.50" },
-  { name: "Butter Burger", price: "$6.50" },
+  { name: "Butter Burger", price: "₹ 100" },
+  { name: "Beef Burger",   price: "₹ 100" },
+  { name: "Fruit Burger",  price: "₹ 100" },
+  { name: "Lamb Burger",   price: "₹ 100" },
+  { name: "Cheese Burger", price: "₹ 100" },
+  { name: "Butter Burger", price: "₹ 100" },
 ];
 
 const pizzas = [
-  { name: "Onion Pizza",   price: "$5.00" },
-  { name: "Beef Pizza",    price: "$7.00" },
-  { name: "Egg Pizza",     price: "$6.50" },
-  { name: "Apple Pizza",   price: "$4.00" },
-  { name: "Cheese Pizza",  price: "$5.50" },
-  { name: "Chicken Pizza", price: "$6.50" },
+  { name: "Onion Pizza",   price: "₹ 100" },
+  { name: "Beef Pizza",    price: "₹ 100" },
+  { name: "Egg Pizza",     price: "₹ 100" },
+  { name: "Apple Pizza",   price: "₹ 100" },
+  { name: "Cheese Pizza",  price: "₹ 100" },
+  { name: "Chicken Pizza", price: "₹ 100" },
 ];
 
 const iceCream = [
-  { name: "Cookie Dough",   price: "$6.00" },
-  { name: "Vanilla Bean",   price: "$7.00" },
-  { name: "Cotton Candy",   price: "$6.50" },
-  { name: "Peanut Butter",  price: "$8.00" },
-  { name: "Apple Treat",    price: "$5.50" },
-  { name: "Honey Treat",    price: "$6.50" },
+  { name: "Cookie Dough",   price: "₹ 100" },
+  { name: "Vanilla Bean",   price: "₹ 100" },
+  { name: "Cotton Candy",   price: "₹ 100" },
+  { name: "Peanut Butter",  price: "₹ 100" },
+  { name: "Apple Treat",    price: "₹ 100" },
+  { name: "Honey Treat",    price: "₹ 100" },
 ];
 
 /* ─── SVG mandala (simplified decorative element) ──────────── */
