@@ -3,10 +3,9 @@ import { Link, useLocation, Outlet } from 'react-router';
 import {
   LayoutDashboard,
   Store,
-  CheckCircle,
   Palette,
   CreditCard,
-  DollarSign,
+  IndianRupee,
   BarChart3,
   QrCode,
   Users,
@@ -38,10 +37,11 @@ export function Layout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [ticketCount, setTicketCount] = useState(0);
+  const [notifications, setNotifications] = useState([]);
   const location = useLocation();
 
   const admin = JSON.parse(localStorage.getItem("admin"));
-    const token = localStorage.getItem("token")
+  const token = localStorage.getItem("token")
 
   const API = import.meta.env.VITE_API_URL;
 
@@ -53,29 +53,57 @@ export function Layout() {
         },
       });
 
-      setTicketCount(res.data.data.length || 0);
+      const openTickets = res.data.data?.filter((t: any) => t.status !== 'closed') || [];
+      setTicketCount(openTickets.length);
     } catch (err) {
       console.log(err);
     }
   };
 
+  const fetchNotificationCount = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`${API}/superadmin/notifications`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data?.success) {
+        const unreadCount = res.data.data.filter((n: any) => !n.isRead).length || 0;
+        setNotifications(unreadCount);
+      }
+    } catch (err: any) {
+      console.error('Fetch notifications failed:', err);
+    }
+  };
+
   useEffect(() => {
     fetchTicketCount();
+    fetchNotificationCount();
+
+    // Poll for notifications and tickets every 4 seconds for instant database sync
+    const interval = setInterval(() => {
+      fetchTicketCount();
+      fetchNotificationCount();
+    }, 4000);
+
+    window.addEventListener('notificationsUpdated', fetchNotificationCount);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('notificationsUpdated', fetchNotificationCount);
+    };
   }, []);
 
   const navItems: NavItem[] = [
     { name: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" />, path: '/dashboard' },
     { name: 'Restaurants', icon: <Store className="w-5 h-5" />, path: '/restaurants' },
-    { name: 'Restaurant Approvals', icon: <CheckCircle className="w-5 h-5" />, path: '/approvals', badge: 3 },
     { name: 'Menu Themes', icon: <Palette className="w-5 h-5" />, path: '/themes' },
     { name: 'Subscriptions', icon: <CreditCard className="w-5 h-5" />, path: '/subscriptions' },
-    { name: 'Payments', icon: <DollarSign className="w-5 h-5" />, path: '/payments' },
+    { name: 'Payments', icon: <IndianRupee className="w-5 h-5" />, path: '/payments' },
     { name: 'Revenue Analytics', icon: <BarChart3 className="w-5 h-5" />, path: '/revenue-analytics' },
     { name: 'QR Analytics', icon: <QrCode className="w-5 h-5" />, path: '/qr-analytics' },
-    { name: 'Users', icon: <Users className="w-5 h-5" />, path: '/users' },
+    // { name: 'Users', icon: <Users className="w-5 h-5" />, path: '/users' },
     { name: 'Support Tickets', icon: <Headphones className="w-5 h-5" />, path: '/support', badge: ticketCount },
-    { name: 'Notifications', icon: <Bell className="w-5 h-5" />, path: '/notifications', badge: 4 },
-    { name: 'Settings', icon: <Settings className="w-5 h-5" />, path: '/settings' },
+    { name: 'Notifications', icon: <Bell className="w-5 h-5" />, path: '/notifications', badge: notifications },
+    // { name: 'Settings', icon: <Settings className="w-5 h-5" />, path: '/settings' },
     { name: 'System Logs', icon: <FileText className="w-5 h-5" />, path: '/logs' }
   ];
 
@@ -156,7 +184,7 @@ export function Layout() {
               >
                 <div className="relative">
                   {item.icon}
-                  {item.badge && (
+                  {item.badge !== undefined && item.badge > 0 && (
                     <div className="absolute -top-1 -right-1 w-4 h-4 bg-[#00C853] rounded-full flex items-center justify-center">
                       <span className="text-[10px] text-white font-medium">{item.badge}</span>
                     </div>

@@ -2,7 +2,7 @@ import { Link } from 'react-router';
 import {
   Store,
   CreditCard,
-  DollarSign,
+  IndianRupee,
   QrCode,
   TrendingUp,
   CheckCircle,
@@ -61,10 +61,10 @@ export function Dashboard() {
     },
     {
       title: 'Monthly Revenue',
-      value: `$${monthlyRevenue.toLocaleString()}`,
+      value: `₹${monthlyRevenue.toLocaleString()}`,
       change: '+18%',
       trend: 'up',
-      icon: <DollarSign className="w-6 h-6" />,
+      icon: <IndianRupee className="w-6 h-6" />,
       color: 'bg-purple-500'
     },
     {
@@ -178,7 +178,7 @@ export function Dashboard() {
               <h3 className="text-lg font-semibold text-[#1A1A1A]">Revenue Growth</h3>
               <p className="text-sm text-[#6B7280] mt-1">Monthly recurring revenue</p>
             </div>
-            <DollarSign className="w-5 h-5 text-[#00C853]" />
+            <IndianRupee className="w-5 h-5 text-[#00C853]" />
           </div>
           <ResponsiveContainer width="100%" height={250}>
             <LineChart data={revenueGrowthData}>

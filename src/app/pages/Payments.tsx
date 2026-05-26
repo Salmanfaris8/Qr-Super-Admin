@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Search, Download, Filter } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Download, Filter, Loader, AlertCircle } from 'lucide-react';
 import { Card } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
@@ -11,12 +11,64 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select';
-import { payments } from '../data/mockData';
+import axios from 'axios';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 export function Payments() {
+  const [payments, setPayments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPlan, setFilterPlan] = useState('all');
+
+  useEffect(() => {
+    fetchPayments();
+  }, []);
+
+  const fetchPayments = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`${API_BASE_URL}/superadmin/restaurants`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data?.success) {
+        // Map the restaurants to payment records
+        const mappedPayments = res.data.data.map((r: any) => {
+          let paymentStatus: 'Completed' | 'Pending' | 'Failed' = 'Completed';
+          if (r.accountStatus === 'Pending') {
+            paymentStatus = 'Pending';
+          } else if (r.accountStatus === 'Suspended') {
+            paymentStatus = 'Failed';
+          }
+
+          const invoiceYear = r.createdAt ? new Date(r.createdAt).getFullYear() : new Date().getFullYear();
+          const invoiceId = `INV-${invoiceYear}-${String(r.dbId).padStart(3, '0')}`;
+
+          return {
+            id: `PAY-${r.dbId}`,
+            restaurantName: r.name,
+            amount: r.monthlyRevenue || 0,
+            plan: r.subscriptionPlan || 'Basic',
+            date: r.createdAt || new Date().toISOString(),
+            status: paymentStatus,
+            invoiceId: invoiceId
+          };
+        });
+        setPayments(mappedPayments);
+      }
+    } catch (err: any) {
+      console.error('Fetch payments failed:', err);
+      setError(err.response?.data?.message || 'Failed to load payment details from backend.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredPayments = payments.filter(payment => {
     const matchesSearch =
@@ -35,6 +87,151 @@ export function Payments() {
     .reduce((sum, p) => sum + p.amount, 0);
   const failedCount = payments.filter(p => p.status === 'Failed').length;
 
+  const handleExportPDF = async () => {
+    const input = document.createElement("div");
+    input.style.position = "fixed";
+    input.style.top = "-9999px";
+    input.style.left = "-9999px";
+    input.style.width = "1100px";
+
+    const tableRows = filteredPayments.map(p => `
+      <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #E5E7EB; font-family: monospace; font-size: 13px;">${p.invoiceId}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #E5E7EB; font-weight: 500; font-size: 13px;">${p.restaurantName}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #E5E7EB;">
+          <span style="padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;
+            background-color: ${p.plan === 'Premium' ? '#FAF5FF' : p.plan === 'Pro' ? '#EFF6FF' : '#F3F4F6'};
+            color: ${p.plan === 'Premium' ? '#6B21A8' : p.plan === 'Pro' ? '#1D4ED8' : '#374151'};">
+            ${p.plan}
+          </span>
+        </td>
+        <td style="padding: 10px; border-bottom: 1px solid #E5E7EB; font-weight: bold; font-size: 13px;">&#8377;${p.amount.toLocaleString()}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #E5E7EB; font-size: 13px;">${new Date(p.date).toLocaleDateString()}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #E5E7EB;">
+          <span style="padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;
+            background-color: ${p.status === 'Completed' ? '#ECFDF5' : p.status === 'Pending' ? '#FEF3C7' : '#FEF2F2'};
+            color: ${p.status === 'Completed' ? '#047857' : p.status === 'Pending' ? '#D97706' : '#B91C1C'};">
+            ${p.status}
+          </span>
+        </td>
+      </tr>
+    `).join('');
+
+    input.innerHTML = `
+      <div style="font-family: Arial, sans-serif; padding: 40px; color: #1A1A1A; background: #ffffff; width: 1100px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 30px; border-bottom: 2px solid #E5E7EB; padding-bottom: 20px;">
+          <div>
+            <div style="font-size: 26px; font-weight: bold; color: #1E88E5;">QR Restaurant System</div>
+            <div style="font-size: 14px; color: #6B7280; margin-top: 4px;">Super Admin Portal — Subscriptions & Payments Directory</div>
+          </div>
+          <div style="font-size: 13px; color: #6B7280; text-align: right;">
+            <div><strong>Generated:</strong> ${new Date().toLocaleDateString()}</div>
+            <div><strong>Plan Filter:</strong> ${filterPlan === 'all' ? 'All Plans' : filterPlan}</div>
+            <div><strong>Status Filter:</strong> ${filterStatus === 'all' ? 'All Statuses' : filterStatus}</div>
+            <div><strong>Total Transactions:</strong> ${filteredPayments.length}</div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 16px; margin-bottom: 28px;">
+          <div style="flex: 1; background: #EFF6FF; border-radius: 8px; padding: 16px;">
+            <div style="font-size: 12px; color: #6B7280;">Total Revenue</div>
+            <div style="font-size: 22px; font-weight: bold; color: #1E40AF;">&#8377;${totalRevenue.toLocaleString()}</div>
+          </div>
+          <div style="flex: 1; background: #FEF3C7; border-radius: 8px; padding: 16px;">
+            <div style="font-size: 12px; color: #6B7280;">Pending Amount</div>
+            <div style="font-size: 22px; font-weight: bold; color: #D97706;">&#8377;${pendingAmount.toLocaleString()}</div>
+          </div>
+          <div style="flex: 1; background: #FEF2F2; border-radius: 8px; padding: 16px;">
+            <div style="font-size: 12px; color: #6B7280;">Failed Count</div>
+            <div style="font-size: 22px; font-weight: bold; color: #B91C1C;">${failedCount}</div>
+          </div>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="background: #F8FAFC;">
+              <th style="text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 600; color: #6B7280; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid #E5E7EB;">Invoice ID</th>
+              <th style="text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 600; color: #6B7280; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid #E5E7EB;">Restaurant</th>
+              <th style="text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 600; color: #6B7280; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid #E5E7EB;">Plan</th>
+              <th style="text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 600; color: #6B7280; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid #E5E7EB;">Amount</th>
+              <th style="text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 600; color: #6B7280; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid #E5E7EB;">Date</th>
+              <th style="text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 600; color: #6B7280; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid #E5E7EB;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRows}
+          </tbody>
+        </table>
+
+        <div style="margin-top: 30px; font-size: 11px; color: #9CA3AF; text-align: center; border-top: 1px solid #E5E7EB; padding-top: 12px;">
+          QR Restaurant System &bull; Super Admin Payment Export &bull; ${new Date().toLocaleString()}
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(input);
+
+    try {
+      const canvas = await html2canvas(input.firstElementChild as HTMLElement, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pdfWidth;
+      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      let position = 0;
+      let remaining = imgHeight;
+
+      while (remaining > 0) {
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        remaining -= pdfHeight;
+        position -= pdfHeight;
+        if (remaining > 0) pdf.addPage();
+      }
+
+      pdf.save(`payments-${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (error) {
+      console.error("PDF generation failed:", error);
+    } finally {
+      document.body.removeChild(input);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <Loader className="w-8 h-8 animate-spin text-[#1E88E5] mx-auto mb-4" />
+          <p className="text-[#6B7280]">Loading payment records...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="p-6 bg-red-50 border-red-200">
+        <div className="flex items-start gap-4">
+          <AlertCircle className="w-6 h-6 text-red-500 shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-semibold text-red-900 mb-2">Error Loading Payments</h3>
+            <p className="text-red-700">{error}</p>
+            <Button onClick={fetchPayments} variant="outline" className="mt-4 border-red-300 text-red-700 hover:bg-red-100">
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -43,7 +240,7 @@ export function Payments() {
           <h1 className="text-2xl font-semibold text-[#1A1A1A]">Payment Management</h1>
           <p className="text-sm text-[#6B7280] mt-1">Track all subscription payments and transactions</p>
         </div>
-        <Button className="bg-[#1E88E5] hover:bg-[#1E88E5]/90 text-white">
+        <Button className="bg-[#1E88E5] hover:bg-[#1E88E5]/90 text-white" onClick={handleExportPDF}>
           <Download className="w-4 h-4 mr-2" />
           Export Report
         </Button>
@@ -53,12 +250,12 @@ export function Payments() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-4 bg-white border-[#E5E7EB]">
           <p className="text-sm text-[#6B7280]">Total Revenue</p>
-          <p className="text-2xl font-semibold text-[#1A1A1A] mt-1">${totalRevenue.toLocaleString()}</p>
+          <p className="text-2xl font-semibold text-[#1A1A1A] mt-1">₹{totalRevenue.toLocaleString()}</p>
           <p className="text-sm text-green-600 mt-1">This month</p>
         </Card>
         <Card className="p-4 bg-white border-[#E5E7EB]">
           <p className="text-sm text-[#6B7280]">Pending Payments</p>
-          <p className="text-2xl font-semibold text-[#1A1A1A] mt-1">${pendingAmount}</p>
+          <p className="text-2xl font-semibold text-[#1A1A1A] mt-1">₹{pendingAmount.toLocaleString()}</p>
           <p className="text-sm text-yellow-600 mt-1">Awaiting confirmation</p>
         </Card>
         <Card className="p-4 bg-white border-[#E5E7EB]">
@@ -105,16 +302,12 @@ export function Payments() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Plans</SelectItem>
-              <SelectItem value="Basic">Basic</SelectItem>
-              <SelectItem value="Standard">Standard</SelectItem>
+              <SelectItem value="Starter">Starter</SelectItem>
+              <SelectItem value="Pro">Pro</SelectItem>
               <SelectItem value="Premium">Premium</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" className="border-[#E5E7EB]">
-            <Download className="w-4 h-4 mr-2" />
-            CSV
-          </Button>
-          <Button variant="outline" className="border-[#E5E7EB]">
+          <Button variant="outline" className="border-[#E5E7EB]" onClick={handleExportPDF}>
             <Download className="w-4 h-4 mr-2" />
             PDF
           </Button>
@@ -171,7 +364,7 @@ export function Payments() {
                     </Badge>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <p className="text-sm font-semibold text-[#1A1A1A]">${payment.amount}</p>
+                    <p className="text-sm font-semibold text-[#1A1A1A]">₹{payment.amount.toLocaleString()}</p>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <p className="text-sm text-[#6B7280]">
@@ -236,7 +429,7 @@ export function Payments() {
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-[#6B7280]">Amount:</span>
-                <span className="text-sm font-semibold text-[#1A1A1A]">${payment.amount}</span>
+                <span className="text-sm font-semibold text-[#1A1A1A]">₹{payment.amount.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-[#6B7280]">Date:</span>

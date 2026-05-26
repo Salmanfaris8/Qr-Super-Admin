@@ -3,7 +3,6 @@ import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
 import { Restaurants } from './pages/Restaurants';
 import { RestaurantProfile } from './pages/RestaurantProfile';
-import { Approvals } from './pages/Approvals';
 import { MenuThemes } from './pages/MenuThemes';
 import { Subscriptions } from './pages/Subscriptions';
 import { Payments } from './pages/Payments';
@@ -28,7 +27,6 @@ export const router = createBrowserRouter([
       { path: 'dashboard', Component: Dashboard },
       { path: 'restaurants', Component: Restaurants },
       { path: 'restaurants/:id', Component: RestaurantProfile },
-      { path: 'approvals', Component: Approvals },
       { path: 'themes', Component: MenuThemes },
       { path: 'subscriptions', Component: Subscriptions },
       { path: 'payments', Component: Payments },
